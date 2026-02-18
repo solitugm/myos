@@ -9,7 +9,7 @@ BUILD=build
 ISO=myos.iso
 
 KERNEL_BIN=$(BUILD)/kernel.bin
-OBJS=$(BUILD)/boot.o $(BUILD)/kernel.o
+OBJS=$(BUILD)/boot.o $(BUILD)/isr.o $(BUILD)/gdt_asm.o $(BUILD)/kernel.o $(BUILD)/idt.o $(BUILD)/pic.o $(BUILD)/gdt.o $(BUILD)/isr_c.o
 
 all: $(ISO)
 
@@ -32,8 +32,26 @@ $(ISO): $(KERNEL_BIN)
 	cp iso/boot/grub/grub.cfg $(BUILD)/isodir/boot/grub/grub.cfg
 	grub-mkrescue -o $(ISO) $(BUILD)/isodir >/dev/null 2>&1
 
+$(BUILD)/isr.o: boot/isr.asm | $(BUILD)
+	$(AS) -f elf32 $< -o $@
+
+$(BUILD)/idt.o: kernel/idt.c | $(BUILD)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD)/pic.o: kernel/pic.c | $(BUILD)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD)/isr_c.o: kernel/isr.c | $(BUILD)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD)/gdt_asm.o: boot/gdt.asm | $(BUILD)
+	$(AS) -f elf32 $< -o $@
+
+$(BUILD)/gdt.o: kernel/gdt.c | $(BUILD)
+	$(CC) $(CFLAGS) -c $< -o $@
+
 run: $(ISO)
-	qemu-system-i386 -cdrom $(ISO) -m 256M
+	qemu-system-i386 -cdrom $(ISO) -m 256M -no-reboot -no-shutdown -d int
 
 clean:
 	rm -rf $(BUILD) $(ISO)
