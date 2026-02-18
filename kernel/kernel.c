@@ -7,6 +7,7 @@
 #include "shell.h"
 #include "pmm.h"
 #include <stdint.h>
+#include "kheap.h"
 
 extern uint32_t end;
 
@@ -18,7 +19,7 @@ void kmain(uint32_t mb2_info_addr) {
     gdt_init();
 
     // 2) PMM 초기화
-    pmm_init(mb2_info_addr, (uint32_t)&end);
+    kheap_init();
 
     // 2) PIC 리맵 (IRQ0~15 -> 0x20~0x2F)
     pic_remap(0x20, 0x28);

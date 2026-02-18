@@ -5,13 +5,9 @@
 #include "pit.h"
 #include "keyboard.h"
 
-static volatile uint16_t* const VGA = (uint16_t*)0xB8000;
-
 volatile uint32_t ticks = 0;
 
 static uint32_t hz = 100; // 우리가 설정할 주파수와 맞춰야 함
-static uint16_t row = 0, col = 0;
-static uint8_t color = 0x0F;
 
 void isr_default_handler_c(void) {
     // “뭔가 인터럽트가 왔다” 정도만.

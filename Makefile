@@ -9,7 +9,7 @@ BUILD=build
 ISO=myos.iso
 
 KERNEL_BIN=$(BUILD)/kernel.bin
-OBJS=$(BUILD)/boot.o $(BUILD)/isr.o $(BUILD)/gdt_asm.o $(BUILD)/kernel.o $(BUILD)/idt.o $(BUILD)/pic.o $(BUILD)/gdt.o $(BUILD)/isr_c.o $(BUILD)/console.o $(BUILD)/pit.o $(BUILD)/keyboard.o $(BUILD)/shell.o $(BUILD)/pmm.o $(BUILD)/mb2.o
+OBJS=$(BUILD)/boot.o $(BUILD)/isr.o $(BUILD)/gdt_asm.o $(BUILD)/kernel.o $(BUILD)/idt.o $(BUILD)/pic.o $(BUILD)/gdt.o $(BUILD)/isr_c.o $(BUILD)/console.o $(BUILD)/pit.o $(BUILD)/keyboard.o $(BUILD)/shell.o $(BUILD)/pmm.o $(BUILD)/mb2.o $(BUILD)/kheap.o
 
 all: $(ISO)
 
@@ -66,6 +66,9 @@ $(BUILD)/pmm.o: kernel/pmm.c | $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD)/mb2.o: kernel/mb2.c | $(BUILD)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD)/kheap.o: kernel/kheap.c | $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 run: $(ISO)
