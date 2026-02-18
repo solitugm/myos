@@ -19,9 +19,9 @@ mb2_header_end:
 
 SECTION .text
 _start:
-    ; basic stack
     mov esp, stack_top
 
+    push ebx        ; multiboot2 info pointer
     call kmain
 
 .hang:

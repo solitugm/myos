@@ -10,4 +10,6 @@ SECTIONS
   .rodata : { *(.rodata*) }
   .data : { *(.data*) }
   .bss : { *(COMMON) *(.bss*) }
+
+  end = .;
 }
