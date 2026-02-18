@@ -9,7 +9,7 @@ BUILD=build
 ISO=myos.iso
 
 KERNEL_BIN=$(BUILD)/kernel.bin
-OBJS=$(BUILD)/boot.o $(BUILD)/isr.o $(BUILD)/gdt_asm.o $(BUILD)/kernel.o $(BUILD)/idt.o $(BUILD)/pic.o $(BUILD)/gdt.o $(BUILD)/isr_c.o
+OBJS=$(BUILD)/boot.o $(BUILD)/isr.o $(BUILD)/gdt_asm.o $(BUILD)/kernel.o $(BUILD)/idt.o $(BUILD)/pic.o $(BUILD)/gdt.o $(BUILD)/isr_c.o $(BUILD)/console.o $(BUILD)/pit.o $(BUILD)/keyboard.o $(BUILD)/shell.o
 
 all: $(ISO)
 
@@ -50,8 +50,20 @@ $(BUILD)/gdt_asm.o: boot/gdt.asm | $(BUILD)
 $(BUILD)/gdt.o: kernel/gdt.c | $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
+$(BUILD)/console.o: kernel/console.c | $(BUILD)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD)/pit.o: kernel/pit.c | $(BUILD)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD)/keyboard.o: kernel/keyboard.c | $(BUILD)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD)/shell.o: kernel/shell.c | $(BUILD)
+	$(CC) $(CFLAGS) -c $< -o $@
+
 run: $(ISO)
-	qemu-system-i386 -cdrom $(ISO) -m 256M -no-reboot -no-shutdown -d int
+	qemu-system-i386 -cdrom $(ISO) -m 256M -no-reboot -no-shutdown
 
 clean:
 	rm -rf $(BUILD) $(ISO)

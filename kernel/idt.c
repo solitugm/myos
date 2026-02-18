@@ -22,6 +22,8 @@ extern void idt_load(uint32_t idt_ptr_addr);
 extern void isr_default_stub(void);
 extern void irq1_keyboard_stub(void);
 
+extern void irq0_timer_stub(void);
+
 void idt_set_gate(uint8_t vec, uint32_t handler, uint16_t sel, uint8_t flags) {
     idt[vec].base_low  = handler & 0xFFFF;
     idt[vec].sel       = sel;
@@ -38,6 +40,9 @@ void idt_init(void) {
     for (int i = 0; i < 256; i++) {
         idt_set_gate((uint8_t)i, (uint32_t)isr_default_stub, 0x08, 0x8E);
     }
+
+    idt_set_gate(0x20, (uint32_t)irq0_timer_stub, 0x08, 0x8E);
+    idt_set_gate(0x21, (uint32_t)irq1_keyboard_stub, 0x08, 0x8E);
 
     // 키보드 IRQ1은 PIC 리맵 후 보통 0x21
     idt_set_gate(0x21, (uint32_t)irq1_keyboard_stub, 0x08, 0x8E);

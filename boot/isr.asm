@@ -2,9 +2,11 @@ BITS 32
 GLOBAL idt_load
 GLOBAL isr_default_stub
 GLOBAL irq1_keyboard_stub
+GLOBAL irq0_timer_stub
 
 EXTERN isr_default_handler_c
 EXTERN irq1_keyboard_handler_c
+EXTERN irq0_timer_handler_c
 
 ; lidt wrapper
 idt_load:
@@ -23,5 +25,11 @@ isr_default_stub:
 irq1_keyboard_stub:
     pusha
     call irq1_keyboard_handler_c
+    popa
+    iretd
+
+irq0_timer_stub:
+    pusha
+    call irq0_timer_handler_c
     popa
     iretd
