@@ -7,6 +7,7 @@ LDFLAGS=-m elf_i386 -T linker.ld -nostdlib
 
 BUILD=build
 ISO=myos.iso
+DISK_IMG=$(BUILD)/disk.img
 
 KERNEL_BIN=$(BUILD)/kernel.bin
 OBJS=$(BUILD)/boot.o $(BUILD)/isr.o $(BUILD)/gdt_asm.o \
@@ -16,6 +17,8 @@ OBJS=$(BUILD)/boot.o $(BUILD)/isr.o $(BUILD)/gdt_asm.o \
 	$(BUILD)/ata.o $(BUILD)/fs.o $(BUILD)/exec.o $(BUILD)/syscall.o
 
 all: $(ISO)
+
+disk: $(DISK_IMG)
 
 $(BUILD):
 	mkdir -p $(BUILD)
@@ -35,6 +38,9 @@ $(ISO): $(KERNEL_BIN)
 	cp $(KERNEL_BIN) $(BUILD)/isodir/boot/kernel.bin
 	cp iso/boot/grub/grub.cfg $(BUILD)/isodir/boot/grub/grub.cfg
 	grub-mkrescue -o $(ISO) $(BUILD)/isodir >/dev/null 2>&1
+
+$(DISK_IMG): scripts/create_disk_image.sh disk/HELLO.TXT disk/HELLO.BIN | $(BUILD)
+	./scripts/create_disk_image.sh $(DISK_IMG)
 
 $(BUILD)/isr.o: boot/isr.asm | $(BUILD)
 	$(AS) -f elf32 $< -o $@
@@ -90,10 +96,13 @@ $(BUILD)/exec.o: kernel/exec.c | $(BUILD)
 $(BUILD)/syscall.o: kernel/syscall.c | $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-run: $(ISO)
-	qemu-system-i386 -cdrom $(ISO) -m 256M -no-reboot -no-shutdown
+run: $(ISO) $(DISK_IMG)
+	qemu-system-i386 -boot order=d -drive file=$(DISK_IMG),format=raw,if=ide,index=0 -cdrom $(ISO) -m 256M -no-reboot -no-shutdown
+
+run-headless: $(ISO) $(DISK_IMG)
+	qemu-system-i386 -boot order=d -drive file=$(DISK_IMG),format=raw,if=ide,index=0 -cdrom $(ISO) -m 256M -no-reboot -no-shutdown -display none
 
 clean:
 	rm -rf $(BUILD) $(ISO)
 
-.PHONY: all run clean
+.PHONY: all disk run run-headless clean

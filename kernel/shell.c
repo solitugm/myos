@@ -53,6 +53,56 @@ static int streq(const char* a, const char* b) {
     return *a == 0 && *b == 0;
 }
 
+static void print_cmd_help(const char* cmd) {
+    if (streq(cmd, "help")) {
+        console_puts("usage: help [command]\n");
+        console_puts("show list or detailed usage for one command\n");
+    } else if (streq(cmd, "clear")) {
+        console_puts("usage: clear\n");
+        console_puts("clear screen and reset cursor\n");
+    } else if (streq(cmd, "ticks") || streq(cmd, "tick")) {
+        console_puts("usage: ticks\n");
+        console_puts("show PIT tick count since boot\n");
+    } else if (streq(cmd, "sleep")) {
+        console_puts("usage: sleep <ms>\n");
+        console_puts("pause shell for milliseconds, example: sleep 1000\n");
+    } else if (streq(cmd, "mem")) {
+        console_puts("usage: mem\n");
+        console_puts("show free/total physical pages\n");
+    } else if (streq(cmd, "heap")) {
+        console_puts("usage: heap\n");
+        console_puts("show heap used/total bytes\n");
+    } else if (streq(cmd, "pmmstat")) {
+        console_puts("usage: pmmstat\n");
+        console_puts("show PMM summary and double-free counter\n");
+    } else if (streq(cmd, "heapstat")) {
+        console_puts("usage: heapstat\n");
+        console_puts("show heap summary and integrity check result\n");
+    } else if (streq(cmd, "alloc")) {
+        console_puts("usage: alloc <bytes>\n");
+        console_puts("allocate bytes from kernel heap, example: alloc 256\n");
+    } else if (streq(cmd, "free")) {
+        console_puts("usage: free\n");
+        console_puts("free last pointer returned by alloc\n");
+    } else if (streq(cmd, "hexdump")) {
+        console_puts("usage: hexdump <addr> <len>\n");
+        console_puts("len range is 1..256, addr accepts decimal or 0xHEX\n");
+    } else if (streq(cmd, "ls")) {
+        console_puts("usage: ls\n");
+        console_puts("list FAT12 root directory entries\n");
+    } else if (streq(cmd, "cat")) {
+        console_puts("usage: cat <file>\n");
+        console_puts("print text/binary bytes as-is, example: cat hello.txt\n");
+    } else if (streq(cmd, "run")) {
+        console_puts("usage: run <file>\n");
+        console_puts("execute checked binary (.bin with MBIN header, or verified .elf)\n");
+    } else {
+        console_puts("no help for command: ");
+        console_puts(cmd);
+        console_putc('\n');
+    }
+}
+
 static uint32_t parse_u32(const char* s, int* ok) {
     uint32_t v = 0;
     int base = 10;
@@ -105,8 +155,28 @@ static int split_args(char* s, char** argv, int max_args) {
     return argc;
 }
 
-static void cmd_help(void) {
-    console_puts("Commands: help clear ticks sleep mem heap pmmstat heapstat alloc free hexdump ls cat run\n");
+static void cmd_help(int argc, char** argv) {
+    if (argc >= 2) {
+        print_cmd_help(argv[1]);
+        return;
+    }
+
+    console_puts("Commands:\n");
+    console_puts("  help [command]\n");
+    console_puts("  clear\n");
+    console_puts("  ticks\n");
+    console_puts("  sleep <ms>\n");
+    console_puts("  mem\n");
+    console_puts("  heap\n");
+    console_puts("  pmmstat\n");
+    console_puts("  heapstat\n");
+    console_puts("  alloc <bytes>\n");
+    console_puts("  free\n");
+    console_puts("  hexdump <addr> <len>\n");
+    console_puts("  ls\n");
+    console_puts("  cat <file>\n");
+    console_puts("  run <file>\n");
+    console_puts("Use: help <command> for details\n");
 }
 
 static void cmd_mem(void) {
@@ -240,7 +310,7 @@ static void execute(char* cmdline) {
     if (argc == 0) return;
 
     if (streq(argv[0], "help")) {
-        cmd_help();
+        cmd_help(argc, argv);
     } else if (streq(argv[0], "clear")) {
         console_clear();
     } else if (streq(argv[0], "ticks")) {
