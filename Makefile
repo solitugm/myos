@@ -8,6 +8,7 @@ LDFLAGS=-m elf_i386 -T linker.ld -nostdlib
 BUILD=build
 ISO=myos.iso
 DISK_IMG=$(BUILD)/disk.img
+DISK_VIEW_DIR=$(BUILD)/disk_view
 
 KERNEL_BIN=$(BUILD)/kernel.bin
 OBJS=$(BUILD)/boot.o $(BUILD)/isr.o $(BUILD)/gdt_asm.o \
@@ -19,6 +20,17 @@ OBJS=$(BUILD)/boot.o $(BUILD)/isr.o $(BUILD)/gdt_asm.o \
 all: $(ISO)
 
 disk: $(DISK_IMG)
+
+disk-list: $(DISK_IMG)
+	./scripts/list_disk_image.sh $(DISK_IMG)
+
+disk-pull: $(DISK_IMG)
+	./scripts/pull_disk_image.sh $(DISK_IMG) $(DISK_VIEW_DIR)
+
+disk-sync-src: disk-pull
+	rm -rf disk/runtime_sync
+	mkdir -p disk/runtime_sync
+	cp -r $(DISK_VIEW_DIR)/* disk/runtime_sync/
 
 $(BUILD):
 	mkdir -p $(BUILD)
@@ -39,7 +51,7 @@ $(ISO): $(KERNEL_BIN)
 	cp iso/boot/grub/grub.cfg $(BUILD)/isodir/boot/grub/grub.cfg
 	grub-mkrescue -o $(ISO) $(BUILD)/isodir >/dev/null 2>&1
 
-$(DISK_IMG): scripts/create_disk_image.sh scripts/build_hello_elf.sh disk/HELLO.TXT disk/HELLO.BIN disk/HELLO_ELF.asm | $(BUILD)
+$(DISK_IMG): scripts/create_disk_image.sh scripts/build_hello_elf.sh disk/HELLO.TXT disk/HELLO.BIN disk/HELLO_ELF.asm disk/AUTOEXEC.BAT | $(BUILD)
 	./scripts/create_disk_image.sh $(DISK_IMG)
 
 $(BUILD)/isr.o: boot/isr.asm | $(BUILD)
@@ -105,4 +117,4 @@ run-headless: $(ISO) $(DISK_IMG)
 clean:
 	rm -rf $(BUILD) $(ISO)
 
-.PHONY: all disk run run-headless clean
+.PHONY: all disk disk-list disk-pull disk-sync-src run run-headless clean

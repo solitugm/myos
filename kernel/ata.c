@@ -22,6 +22,7 @@
 
 #define ATA_CMD_IDENTIFY 0xEC
 #define ATA_CMD_READ_PIO 0x20
+#define ATA_CMD_WRITE_PIO 0x30
 
 static int ata_ready = 0;
 
@@ -112,6 +113,38 @@ int ata_read28(uint32_t lba, uint8_t count, void* buf) {
         for (int i = 0; i < 256; i++) {
             *dst++ = inw(ATA_REG_DATA);
         }
+    }
+
+    return 0;
+}
+
+int ata_write28(uint32_t lba, uint8_t count, const void* buf) {
+    if (!ata_ready) return ATA_ERR_NO_DRIVE;
+    if (count == 0) return 0;
+    if ((lba >> 28) != 0) return ATA_ERR_IO;
+
+    const uint16_t* src = (const uint16_t*)buf;
+
+    for (uint8_t s = 0; s < count; s++) {
+        uint32_t cur = lba + s;
+
+        if (ata_wait_not_busy() < 0) return ATA_ERR_TIMEOUT;
+
+        outb(ATA_REG_HDDEVSEL, 0xE0 | ((cur >> 24) & 0x0F));
+        outb(ATA_REG_SECCOUNT0, 1);
+        outb(ATA_REG_LBA0, (uint8_t)(cur & 0xFF));
+        outb(ATA_REG_LBA1, (uint8_t)((cur >> 8) & 0xFF));
+        outb(ATA_REG_LBA2, (uint8_t)((cur >> 16) & 0xFF));
+        outb(ATA_REG_COMMAND, ATA_CMD_WRITE_PIO);
+
+        int rc = ata_wait_drq();
+        if (rc < 0) return rc;
+
+        for (int i = 0; i < 256; i++) {
+            outw(ATA_REG_DATA, *src++);
+        }
+
+        if (ata_wait_not_busy() < 0) return ATA_ERR_TIMEOUT;
     }
 
     return 0;

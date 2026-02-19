@@ -12,7 +12,8 @@
 
 static char line[128];
 static void* last_ptr = 0;
-static uint8_t file_buf[4096];
+static uint8_t file_buf[64 * 1024];
+static int batch_depth = 0;
 
 static void print_u32(uint32_t v) {
     char buf[16];
@@ -51,6 +52,73 @@ static int streq(const char* a, const char* b) {
         b++;
     }
     return *a == 0 && *b == 0;
+}
+
+static uint32_t str_len(const char* s) {
+    uint32_t n = 0;
+    while (s[n]) n++;
+    return n;
+}
+
+static char* trim_left(char* s) {
+    while (*s == ' ' || *s == '\t') s++;
+    return s;
+}
+
+static void trim_right(char* s) {
+    uint32_t n = str_len(s);
+    while (n > 0) {
+        char c = s[n - 1];
+        if (c == ' ' || c == '\t' || c == '\r' || c == '\n') {
+            s[n - 1] = 0;
+            n--;
+            continue;
+        }
+        break;
+    }
+}
+
+static void execute(char* cmdline);
+
+static void run_batch(const char* file_name, int echo_cmd) {
+    if (batch_depth >= 4) {
+        console_puts("batch: nesting too deep\n");
+        return;
+    }
+
+    uint32_t out = 0;
+    if (fs_read_file(file_name, file_buf, sizeof(file_buf) - 1, &out) < 0) {
+        console_puts("batch: file not found or read failed\n");
+        return;
+    }
+
+    file_buf[out] = 0;
+    batch_depth++;
+
+    char* p = (char*)file_buf;
+    while (*p) {
+        char* line_start = p;
+        while (*p && *p != '\n') p++;
+        if (*p == '\n') {
+            *p = 0;
+            p++;
+        }
+
+        trim_right(line_start);
+        char* cmd = trim_left(line_start);
+        if (!cmd[0]) continue;
+        if (cmd[0] == ';' || cmd[0] == '#') continue;
+
+        if (echo_cmd) {
+            console_puts("> ");
+            console_puts(cmd);
+            console_putc('\n');
+        }
+
+        execute(cmd);
+    }
+
+    batch_depth--;
 }
 
 static void print_cmd_help(const char* cmd) {
@@ -96,6 +164,18 @@ static void print_cmd_help(const char* cmd) {
     } else if (streq(cmd, "run")) {
         console_puts("usage: run <file>\n");
         console_puts("execute checked binary (.bin with MBIN header, or verified .elf)\n");
+    } else if (streq(cmd, "batch")) {
+        console_puts("usage: batch <file>\n");
+        console_puts("execute commands line by line from a text script\n");
+    } else if (streq(cmd, "copy")) {
+        console_puts("usage: copy <src> <dst>\n");
+        console_puts("copy a file in FAT12 root directory\n");
+    } else if (streq(cmd, "del")) {
+        console_puts("usage: del <file>\n");
+        console_puts("delete a file from FAT12 root directory\n");
+    } else if (streq(cmd, "ren")) {
+        console_puts("usage: ren <old> <new>\n");
+        console_puts("rename a file in FAT12 root directory\n");
     } else {
         console_puts("no help for command: ");
         console_puts(cmd);
@@ -176,6 +256,10 @@ static void cmd_help(int argc, char** argv) {
     console_puts("  ls\n");
     console_puts("  cat <file>\n");
     console_puts("  run <file>\n");
+    console_puts("  batch <file>\n");
+    console_puts("  copy <src> <dst>\n");
+    console_puts("  del <file>\n");
+    console_puts("  ren <old> <new>\n");
     console_puts("Use: help <command> for details\n");
 }
 
@@ -304,6 +388,72 @@ static void cmd_run(int argc, char** argv) {
     }
 }
 
+static void cmd_batch(int argc, char** argv) {
+    if (argc < 2) {
+        console_puts("usage: batch <file>\n");
+        return;
+    }
+    run_batch(argv[1], 1);
+}
+
+static void cmd_copy(int argc, char** argv) {
+    if (argc < 3) {
+        console_puts("usage: copy <src> <dst>\n");
+        return;
+    }
+
+    uint32_t sz = 0;
+    if (fs_get_file_size(argv[1], &sz) < 0) {
+        console_puts("copy: source not found\n");
+        return;
+    }
+    if (sz > sizeof(file_buf)) {
+        console_puts("copy: source too large\n");
+        return;
+    }
+
+    uint32_t out = 0;
+    if (fs_read_file(argv[1], file_buf, sizeof(file_buf), &out) < 0) {
+        console_puts("copy: source read failed\n");
+        return;
+    }
+    if (out != sz) {
+        console_puts("copy: source read truncated\n");
+        return;
+    }
+
+    if (fs_write_file(argv[2], file_buf, out) < 0) {
+        console_puts("copy: destination write failed\n");
+        return;
+    }
+
+    console_puts("copied\n");
+}
+
+static void cmd_del(int argc, char** argv) {
+    if (argc < 2) {
+        console_puts("usage: del <file>\n");
+        return;
+    }
+    if (fs_delete_file(argv[1]) < 0) {
+        console_puts("del failed\n");
+        return;
+    }
+    console_puts("deleted\n");
+}
+
+static void cmd_ren(int argc, char** argv) {
+    if (argc < 3) {
+        console_puts("usage: ren <old> <new>\n");
+        return;
+    }
+    if (fs_rename_file(argv[1], argv[2]) < 0) {
+        console_puts("ren failed\n");
+        return;
+    }
+    console_puts("renamed\n");
+}
+
 static void execute(char* cmdline) {
     char* argv[MAX_ARGS];
     int argc = split_args(cmdline, argv, MAX_ARGS);
@@ -338,12 +488,21 @@ static void execute(char* cmdline) {
         cmd_cat(argc, argv);
     } else if (streq(argv[0], "run")) {
         cmd_run(argc, argv);
+    } else if (streq(argv[0], "batch")) {
+        cmd_batch(argc, argv);
+    } else if (streq(argv[0], "copy")) {
+        cmd_copy(argc, argv);
+    } else if (streq(argv[0], "del")) {
+        cmd_del(argc, argv);
+    } else if (streq(argv[0], "ren")) {
+        cmd_ren(argc, argv);
     } else {
         console_puts("Unknown command\n");
     }
 }
 
 void shell_init(void) {
+    run_batch("AUTOEXEC.BAT", 0);
     console_puts("shell> ");
 }
 

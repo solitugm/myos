@@ -21,5 +21,6 @@ mformat -i "$img" -f 1440 ::
 mcopy -i "$img" "$root_dir/disk/HELLO.TXT" ::HELLO.TXT
 mcopy -i "$img" "$root_dir/disk/HELLO.BIN" ::HELLO.BIN
 mcopy -i "$img" "$tmp_elf" ::HELLO.ELF
+mcopy -i "$img" "$root_dir/disk/AUTOEXEC.BAT" ::AUTOEXEC.BAT
 
 echo "[disk] created $img"

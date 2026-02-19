@@ -9,3 +9,4 @@
 
 int ata_init(void);
 int ata_read28(uint32_t lba, uint8_t count, void* buf);
+int ata_write28(uint32_t lba, uint8_t count, const void* buf);
