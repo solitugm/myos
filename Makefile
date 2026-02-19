@@ -39,7 +39,7 @@ $(ISO): $(KERNEL_BIN)
 	cp iso/boot/grub/grub.cfg $(BUILD)/isodir/boot/grub/grub.cfg
 	grub-mkrescue -o $(ISO) $(BUILD)/isodir >/dev/null 2>&1
 
-$(DISK_IMG): scripts/create_disk_image.sh disk/HELLO.TXT disk/HELLO.BIN | $(BUILD)
+$(DISK_IMG): scripts/create_disk_image.sh scripts/build_hello_elf.sh disk/HELLO.TXT disk/HELLO.BIN disk/HELLO_ELF.asm | $(BUILD)
 	./scripts/create_disk_image.sh $(DISK_IMG)
 
 $(BUILD)/isr.o: boot/isr.asm | $(BUILD)

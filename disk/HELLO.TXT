@@ -3,5 +3,6 @@ Commands:
 - ls
 - cat HELLO.TXT
 - run HELLO.BIN
+- run HELLO.ELF
 Note:
 - run checks extension and executable headers before running.
