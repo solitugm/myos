@@ -7,6 +7,11 @@ void pmm_free_page(uint32_t addr);
 
 uint32_t pmm_total_pages(void);
 uint32_t pmm_free_pages(void);
+uint32_t pmm_first_alloc_page(void);
 
 uint32_t pmm_alloc_contiguous(uint32_t pages);
 void pmm_free_contiguous(uint32_t addr, uint32_t pages);
+
+uint32_t pmm_double_free_count(void);
+int pmm_is_page_used(uint32_t addr);
+void pmm_dump_summary(void);
